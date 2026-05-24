@@ -355,6 +355,17 @@
       return suggestions[level] + " 当前可重点关注：" + weakText + "。";
     }
 
+    function getDailyWordGoal(level) {
+      const goals = {
+        "L0": 10,
+        "L1": 15,
+        "L2": 25,
+        "L3": 35,
+        "L4": 50
+      };
+      return goals[level];
+    }
+
     function showResultPage() {
       const accuracy = correctCount / questions.length * 100;
       const averageTime = answerTimes.reduce((a, b) => a + b, 0) / answerTimes.length;
@@ -362,6 +373,7 @@
       const weakTypes = getWeakTypes();
       const weakText = weakTypes.length > 0 ? weakTypes.join("、") : "暂无";
       const suggestion = getSuggestion(level, weakTypes);
+      const dailyWordGoal = getDailyWordGoal(level);
 
       app.innerHTML = `
         <h1>测试结果</h1>
@@ -371,6 +383,7 @@
 正确率：${accuracy.toFixed(1)}%
 平均答题时间：${averageTime.toFixed(1)} 秒
 薄弱题型：${weakText}
+建议每日单词量：${dailyWordGoal} 个新词
 
 下一步学习建议：
 ${suggestion}</div>
