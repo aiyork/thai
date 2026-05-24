@@ -355,15 +355,15 @@
       return suggestions[level] + " 当前可重点关注：" + weakText + "。";
     }
 
-    function getDailyWordGoal(level) {
-      const goals = {
-        "L0": 10,
-        "L1": 15,
-        "L2": 25,
-        "L3": 35,
-        "L4": 50
+    function getDailyWordPlan(level) {
+      const plans = {
+        "L0": "每天 20 个入门高频词，例如生活、数字、颜色、食物类单词。",
+        "L1": "每天 20 个基础常用词，例如校园、家庭、日常动作类单词。",
+        "L2": "每天 20 个中级核心词，例如常见搭配、一词多义和阅读高频词。",
+        "L3": "每天 20 个进阶学术词，例如抽象名词、态度词和议论文常用词。",
+        "L4": "每天 20 个雅思 8-9 分难度词，例如精确表达、学术写作和复杂语境词。"
       };
-      return goals[level];
+      return plans[level];
     }
 
     function showResultPage() {
@@ -373,7 +373,7 @@
       const weakTypes = getWeakTypes();
       const weakText = weakTypes.length > 0 ? weakTypes.join("、") : "暂无";
       const suggestion = getSuggestion(level, weakTypes);
-      const dailyWordGoal = getDailyWordGoal(level);
+      const dailyWordPlan = getDailyWordPlan(level);
 
       app.innerHTML = `
         <h1>测试结果</h1>
@@ -383,7 +383,7 @@
 正确率：${accuracy.toFixed(1)}%
 平均答题时间：${averageTime.toFixed(1)} 秒
 薄弱题型：${weakText}
-建议每日单词量：${dailyWordGoal} 个新词
+每日单词计划：${dailyWordPlan}
 
 下一步学习建议：
 ${suggestion}</div>
