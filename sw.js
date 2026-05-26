@@ -1,4 +1,4 @@
-const CACHE_NAME = "thai-level-test-019e590f-v8";
+const CACHE_NAME = "thai-level-test-019e590f-v9";
 const URLS = ["./", "manifest.json", "icon.svg"];
 
 self.addEventListener("install", event => {

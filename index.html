@@ -200,6 +200,7 @@
     let accessGranted = false;
     let userName = "";
     let gender = "";
+    let studiedThai = null;
     let activeQuestions = [];
     let currentIndex = 0;
     let correctCount = 0;
@@ -214,7 +215,7 @@
     const app = document.getElementById("app");
 
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("sw.js?v=8").catch(() => {});
+      navigator.serviceWorker.register("sw.js?v=9").catch(() => {});
     }
 
     function chooseRandomQuestion(pool, usedQuestionTexts) {
@@ -300,12 +301,58 @@
 
       userName = name;
       gender = selectedGender;
+      showStudyHistoryPage();
+    }
+
+    function showStudyHistoryPage() {
+      stopTimer();
+      app.innerHTML = `
+        <h1>泰语水平测试</h1>
+        <p class="meta">${userName}，请选择你是否学过泰语。没有学过会直接进入 L0 字母学习路径；学过则进入 20 道题测试。</p>
+        <label>你以前学过泰语吗？</label>
+        <div class="options">
+          <button onclick="chooseStudyHistory(false)">A. 没有学过，从 L0 开始学</button>
+          <button onclick="chooseStudyHistory(true)">B. 学过，进入水平测试</button>
+        </div>
+        <button class="primary" onclick="showStartPage()">返回修改信息</button>
+      `;
+    }
+
+    function chooseStudyHistory(hasStudied) {
+      studiedThai = hasStudied;
+
+      if (!studiedThai) {
+        showL0StartPage();
+        return;
+      }
+
+      beginTest();
+    }
+
+    function beginTest() {
       activeQuestions = buildTestQuestions();
       currentIndex = 0;
       correctCount = 0;
       answerTimes = [];
       wrongTypeCounts = {};
       showQuestionPage();
+    }
+
+    function showL0StartPage() {
+      stopTimer();
+      lastLevel = "L0";
+      app.innerHTML = `
+        <h1>L0：从泰文字母开始</h1>
+        <div class="result">泰语名字：${userName}
+性别：${gender}
+学习状态：没有学过泰语
+推荐等级：${getLevelTitle(lastLevel)}
+
+学习建议：
+从泰文字母开始：先认读常见辅音，再学基础元音和简单拼读，例如 ก + า = กา。暂时不要急着背长句。</div>
+        <button class="primary" onclick="showWordPlanPage()">生成今日 L0 学习计划</button>
+        <button class="primary" onclick="showStartPage()">重新选择</button>
+      `;
     }
 
     function showQuestionPage() {
