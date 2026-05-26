@@ -1,0 +1,1 @@
+{"name": "泰语水平测试", "short_name": "泰语测试", "start_url": "./", "scope": "./", "display": "standalone", "background_color": "#f6f7fb", "theme_color": "#2563eb", "description": "从泰文字母和基础拼读到高级语境词义的泰语水平测试。", "icons": [{"src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}]}
