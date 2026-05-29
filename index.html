@@ -225,6 +225,8 @@
     let remainingSeconds = currentTimeLimit;
     let timerId = null;
     let lastLevel = "";
+    let activeWordBook = null;
+    let activeBookWords = [];
 
     const app = document.getElementById("app");
 
@@ -454,6 +456,7 @@
           <button onclick="chooseGender('男')">A. 男</button>
           <button onclick="chooseGender('女')">B. 女</button>
         </div>
+        <button class="primary" onclick="showWordBooksPage()">浏览泰语词库</button>
         <div class="error" id="errorText"></div>
       `;
       document.getElementById("nameInput").focus();
@@ -523,6 +526,7 @@
 学习建议：
 从泰文字母开始：先认读常见辅音，再学基础元音和简单拼读，例如 ก + า = กา。暂时不要急着背长句。</div>
         <button class="primary" onclick="showWordPlanPage()">生成今日 L0 学习计划</button>
+        <button class="primary" onclick="showWordBooksPage()">浏览 L0 泰语词库</button>
         <button class="primary" onclick="showStartPage()">重新选择</button>
       `;
     }
@@ -764,6 +768,193 @@
       }
     }
 
+    function escapeHtml(value) {
+      // 把数据库文字安全地放进 HTML，避免特殊符号破坏页面结构。
+      return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+      }[char]));
+    }
+
+    function getTrackTitle(track) {
+      if (track === "daily") {
+        return "Daily Thai（日常泰语）";
+      }
+
+      if (track === "cutfl") {
+        return "CUTFL exam Thai（CUTFL 考试泰语）";
+      }
+
+      return track || "未分类";
+    }
+
+    async function showWordBooksPage() {
+      if (!accessGranted) {
+        showAccessPage();
+        return;
+      }
+
+      stopTimer();
+      app.innerHTML = `
+        <h1>泰语词库</h1>
+        <p class="meta">正在读取词书...</p>
+      `;
+
+      const client = getAuthClient();
+
+      if (!client) {
+        app.innerHTML = `
+          <h1>泰语词库</h1>
+          <div class="error">Supabase 还没有配置，暂时不能读取词库。</div>
+          <button class="primary" onclick="showStartPage()">返回</button>
+        `;
+        return;
+      }
+
+      const { data, error } = await client
+        .from("thai_word_books")
+        .select("id, code, title, description, track, level, category, sort_order")
+        .eq("is_active", true)
+        .order("track", { ascending: true })
+        .order("sort_order", { ascending: true });
+
+      if (error) {
+        app.innerHTML = `
+          <h1>泰语词库</h1>
+          <div class="error">读取词书失败：${escapeHtml(error.message)}</div>
+          <button class="primary" onclick="showStartPage()">返回</button>
+        `;
+        return;
+      }
+
+      const books = data || [];
+      const groupedBooks = {
+        daily: books.filter(book => book.track === "daily"),
+        cutfl: books.filter(book => book.track === "cutfl")
+      };
+
+      const renderBookGroup = track => {
+        const trackBooks = groupedBooks[track] || [];
+        const buttons = trackBooks.length > 0
+          ? trackBooks.map(book => `
+              <button onclick="showBookWordsPage('${escapeHtml(book.id)}')">
+                ${escapeHtml(book.title)}｜${escapeHtml(book.level)}｜${escapeHtml(book.category)}
+                <br><span class="meta">${escapeHtml(book.code)}：${escapeHtml(book.description || "")}</span>
+              </button>
+            `).join("")
+          : `<div class="study-box">暂无词书。</div>`;
+
+        return `
+          <label>${getTrackTitle(track)}</label>
+          <div class="options">${buttons}</div>
+        `;
+      };
+
+      app.innerHTML = `
+        <h1>泰语词库</h1>
+        <p class="meta">选择一个词书，查看里面的泰语学习项。</p>
+        ${renderBookGroup("daily")}
+        ${renderBookGroup("cutfl")}
+        <button class="primary" onclick="showStartPage()">返回测试首页</button>
+      `;
+    }
+
+    async function showBookWordsPage(bookId) {
+      stopTimer();
+      app.innerHTML = `
+        <h1>泰语词库</h1>
+        <p class="meta">正在读取词条...</p>
+      `;
+
+      const client = getAuthClient();
+
+      if (!client) {
+        showAccessPage();
+        return;
+      }
+
+      const { data: book, error: bookError } = await client
+        .from("thai_word_books")
+        .select("id, code, title, description, track, level, category")
+        .eq("id", bookId)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (bookError || !book) {
+        app.innerHTML = `
+          <h1>泰语词库</h1>
+          <div class="error">读取词书失败：${escapeHtml(bookError?.message || "没有找到这个词书。")}</div>
+          <button class="primary" onclick="showWordBooksPage()">返回词书</button>
+        `;
+        return;
+      }
+
+      const { data: words, error: wordsError } = await client
+        .from("thai_words")
+        .select("id, thai_text, chinese_meaning, pronunciation, example_thai, example_chinese, track, level, category, part_of_speech, audio_url, sort_order")
+        .eq("book_id", bookId)
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
+
+      if (wordsError) {
+        app.innerHTML = `
+          <h1>${escapeHtml(book.title)}</h1>
+          <div class="error">读取词条失败：${escapeHtml(wordsError.message)}</div>
+          <button class="primary" onclick="showWordBooksPage()">返回词书</button>
+        `;
+        return;
+      }
+
+      activeWordBook = book;
+      activeBookWords = words || [];
+
+      const wordButtons = activeBookWords.length > 0
+        ? activeBookWords.map((word, index) => `
+            <button onclick="showWordDetailPage(${index})">
+              ${escapeHtml(word.thai_text)}｜${escapeHtml(word.chinese_meaning)}
+              <br><span class="meta">${escapeHtml(word.pronunciation || "")}</span>
+            </button>
+          `).join("")
+        : `<div class="study-box">这个词书还没有词条。</div>`;
+
+      app.innerHTML = `
+        <h1>${escapeHtml(book.title)}</h1>
+        <p class="meta">${escapeHtml(getTrackTitle(book.track))}｜${escapeHtml(book.level)}｜${escapeHtml(book.category)}｜${escapeHtml(book.code)}</p>
+        <div class="options">${wordButtons}</div>
+        <button class="primary" onclick="showWordBooksPage()">返回词书</button>
+      `;
+    }
+
+    function showWordDetailPage(index) {
+      const word = activeBookWords[index];
+
+      if (!word) {
+        showWordBooksPage();
+        return;
+      }
+
+      const audioHtml = word.audio_url
+        ? `<a class="primary" href="${escapeHtml(word.audio_url)}" target="_blank" rel="noopener">播放发音</a>`
+        : `<div class="study-box">Audio not available yet</div>`;
+
+      app.innerHTML = `
+        <h1>${escapeHtml(word.thai_text)}</h1>
+        <div class="result">中文意思：${escapeHtml(word.chinese_meaning)}
+发音：${escapeHtml(word.pronunciation || "暂无")}
+泰语例句：${escapeHtml(word.example_thai || "暂无")}
+中文例句：${escapeHtml(word.example_chinese || "暂无")}
+分类：${escapeHtml(word.category || "暂无")}
+等级：${escapeHtml(word.level || "暂无")}
+词性：${escapeHtml(word.part_of_speech || "暂无")}</div>
+        ${audioHtml}
+        <button class="primary" onclick="showBookWordsPage('${escapeHtml(activeWordBook.id)}')">返回词表</button>
+        <button class="primary" onclick="showWordBooksPage()">返回词书</button>
+      `;
+    }
+
     function showWordPlanPage(message = "") {
       const reviewWords = getDueReviewWords();
       const systemWords = getSystemWords(lastLevel);
@@ -789,6 +980,7 @@ ${formatWords(reviewWords)}
           <div class="error" id="wordError"></div>
         </div>
         ${messageHtml}
+        <button class="primary" onclick="showWordBooksPage()">浏览泰语词库</button>
         <button class="primary" onclick="showStartPage()">返回测试</button>
       `;
     }
@@ -818,6 +1010,7 @@ ${formatWords(reviewWords)}
 按等级推荐：
 ${suggestion}</div>
         <button class="primary" onclick="showWordPlanPage()">生成今日泰语学习计划</button>
+        <button class="primary" onclick="showWordBooksPage()">浏览泰语词库</button>
         <button class="primary" onclick="showStartPage()">重新测试</button>
       `;
 
