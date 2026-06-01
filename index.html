@@ -1295,6 +1295,30 @@
       showStartPage();
     }
 
+    function appBack(currentView) {
+      if (currentView === "wordDetail" && activeWordBook?.id) {
+        showBookWordsPage(activeWordBook.id);
+        return;
+      }
+
+      if (currentView === "bookWords") {
+        showWordBooksPage();
+        return;
+      }
+
+      if (currentView === "wordBooks") {
+        returnFromWordBooksPage();
+        return;
+      }
+
+      if (currentView === "learning") {
+        showWordPlanPage();
+        return;
+      }
+
+      showStartPage();
+    }
+
     async function showWordBooksPage() {
       if (!accessGranted) {
         showAccessPage();
@@ -1323,7 +1347,7 @@
         app.innerHTML = `
           <h1>泰语词库</h1>
           <div class="error">Supabase 还没有配置，暂时不能读取词库。</div>
-          <button class="primary" onclick="returnFromWordBooksPage()">返回</button>
+          <button class="primary" onclick="appBack('wordBooks')">返回</button>
         `;
         return;
       }
@@ -1339,7 +1363,7 @@
         app.innerHTML = `
           <h1>泰语词库</h1>
           <div class="error">读取词书失败：${escapeHtml(error.message)}</div>
-          <button class="primary" onclick="returnFromWordBooksPage()">返回</button>
+          <button class="primary" onclick="appBack('wordBooks')">返回</button>
         `;
         return;
       }
@@ -1372,7 +1396,7 @@
         <p class="meta">选择一个词书，查看里面的泰语学习项。</p>
         ${renderBookGroup("daily")}
         ${renderBookGroup("cutfl")}
-        <button class="primary" onclick="returnFromWordBooksPage()">返回</button>
+        <button class="primary" onclick="appBack('wordBooks')">返回</button>
       `;
     }
 
@@ -1401,7 +1425,7 @@
         app.innerHTML = `
           <h1>泰语词库</h1>
           <div class="error">读取词书失败：${escapeHtml(bookError?.message || "没有找到这个词书。")}</div>
-          <button class="primary" onclick="showWordBooksPage()">返回词书</button>
+          <button class="primary" onclick="appBack('bookWords')">返回</button>
         `;
         return;
       }
@@ -1417,7 +1441,7 @@
         app.innerHTML = `
           <h1>${escapeHtml(book.title)}</h1>
           <div class="error">读取词条失败：${escapeHtml(wordsError.message)}</div>
-          <button class="primary" onclick="showWordBooksPage()">返回词书</button>
+          <button class="primary" onclick="appBack('bookWords')">返回</button>
         `;
         return;
       }
@@ -1452,7 +1476,7 @@
         <h1>${escapeHtml(book.title)}</h1>
         <p class="meta">${escapeHtml(getTrackTitle(book.track))}｜${escapeHtml(book.level)}｜${escapeHtml(getDisplayName(book.category))}｜${escapeHtml(book.code)}</p>
         <div class="options">${wordButtons}</div>
-        <button class="primary" onclick="showWordBooksPage()">返回词书</button>
+        <button class="primary" onclick="appBack('bookWords')">返回</button>
       `;
     }
 
@@ -1629,7 +1653,7 @@ ${escapeHtml(letter || "暂无")} 是“${escapeHtml(representativeWord || "暂�
         ${renderThaiActions(word.thai_text, word.audio_url || "", "wordActionMessage")}
         <div class="result">${renderWordCardDetails(word)}</div>
         ${renderExampleSentenceHtml(word)}
-        <button class="primary" onclick="showBookWordsPage('${escapeHtml(activeWordBook.id)}')">返回</button>
+        <button class="primary" onclick="appBack('wordDetail')">返回</button>
       `;
     }
 
@@ -1767,7 +1791,7 @@ ${escapeHtml(letter || "暂无")} 是“${escapeHtml(representativeWord || "暂�
           <button onclick="markLearningItem('mastered')">斩：已记住，不用再背</button>
         </div>
         <div class="error" id="learningError"></div>
-        <button class="primary" onclick="showWordPlanPage()">返回学习计划</button>
+        <button class="primary" onclick="appBack('learning')">返回</button>
       `;
     }
 
