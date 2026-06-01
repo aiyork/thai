@@ -342,6 +342,7 @@
     let dailyDictionaryTerms = [];
     let activeLearningItems = [];
     let currentLearningIndex = 0;
+    let wordBooksPreviousView = "start";
 
     const app = document.getElementById("app");
     const currentViewStorageKey = "thai-current-view-state";
@@ -466,6 +467,7 @@
         lastLevel,
         bookId: details.bookId,
         wordId: details.wordId,
+        wordBooksPreviousView: details.wordBooksPreviousView,
         currentLearningIndex: details.currentLearningIndex
       };
 
@@ -500,6 +502,7 @@
       gender = saved.gender || "";
       studiedThai = saved.studiedThai ?? null;
       lastLevel = saved.lastLevel || "";
+      wordBooksPreviousView = saved.wordBooksPreviousView || "start";
 
       if (saved.currentView === "learning" && lastLevel) {
         activeLearningItems = Array.isArray(saved.learningQueue) && saved.learningQueue.length > 0
@@ -1283,6 +1286,15 @@
       `;
     }
 
+    function returnFromWordBooksPage() {
+      if (wordBooksPreviousView === "wordPlan" && lastLevel) {
+        showWordPlanPage();
+        return;
+      }
+
+      showStartPage();
+    }
+
     async function showWordBooksPage() {
       if (!accessGranted) {
         showAccessPage();
@@ -1290,7 +1302,16 @@
       }
 
       stopTimer();
-      saveCurrentViewState("wordBooks");
+      const previousState = loadCurrentViewState();
+
+      if (
+        previousState?.currentView
+        && !["wordBooks", "bookWords", "wordDetail"].includes(previousState.currentView)
+      ) {
+        wordBooksPreviousView = previousState.currentView;
+      }
+
+      saveCurrentViewState("wordBooks", { wordBooksPreviousView });
       app.innerHTML = `
         <h1>泰语词库</h1>
         <p class="meta">正在读取词书...</p>
@@ -1302,7 +1323,7 @@
         app.innerHTML = `
           <h1>泰语词库</h1>
           <div class="error">Supabase 还没有配置，暂时不能读取词库。</div>
-          <button class="primary" onclick="showStartPage()">返回</button>
+          <button class="primary" onclick="returnFromWordBooksPage()">返回</button>
         `;
         return;
       }
@@ -1318,7 +1339,7 @@
         app.innerHTML = `
           <h1>泰语词库</h1>
           <div class="error">读取词书失败：${escapeHtml(error.message)}</div>
-          <button class="primary" onclick="showStartPage()">返回</button>
+          <button class="primary" onclick="returnFromWordBooksPage()">返回</button>
         `;
         return;
       }
@@ -1351,7 +1372,7 @@
         <p class="meta">选择一个词书，查看里面的泰语学习项。</p>
         ${renderBookGroup("daily")}
         ${renderBookGroup("cutfl")}
-        <button class="primary" onclick="showStartPage()">返回测试首页</button>
+        <button class="primary" onclick="returnFromWordBooksPage()">返回</button>
       `;
     }
 
@@ -1414,7 +1435,10 @@
         }
       }
 
-      saveCurrentViewState("bookWords", { bookId: activeWordBook.id });
+      saveCurrentViewState("bookWords", {
+        bookId: activeWordBook.id,
+        wordBooksPreviousView
+      });
 
       const wordButtons = activeBookWords.length > 0
         ? activeBookWords.map((word, index) => `
@@ -1481,7 +1505,7 @@ ${escapeHtml(letter || "暂无")} 是“${escapeHtml(representativeWord || "暂�
           return {
             label: "日常短句",
             thai: draftSentence[0],
-            chinese: draftSentence[1]
+            chinese: draftSentence[1] || "暂无中文翻译"
           };
         }
       }
@@ -1490,7 +1514,7 @@ ${escapeHtml(letter || "暂无")} 是“${escapeHtml(representativeWord || "暂�
         return {
           label: "泰语例句",
           thai: word.example_thai,
-          chinese: word.example_chinese || "暂无"
+            chinese: word.example_chinese || "暂无中文翻译"
         };
       }
 
@@ -1531,8 +1555,9 @@ ${escapeHtml(letter || "暂无")} 是“${escapeHtml(representativeWord || "暂�
         <div class="sentence-box">
           <div class="sentence-label">${escapeHtml(sentence.label)}：</div>
           <div class="thai-sentence">${renderClickableThaiSentence(sentence.thai)}</div>
+          <div class="sentence-label">中文翻译：</div>
+          <div>${escapeHtml(sentence.chinese || "暂无中文翻译")}</div>
           ${renderThaiActions(sentence.thai, "", "sentenceActionMessage")}
-          <div>${escapeHtml(sentence.chinese)}</div>
         </div>
         <div id="wordLookupCard"></div>
       `;
@@ -1594,7 +1619,8 @@ ${escapeHtml(letter || "暂无")} 是“${escapeHtml(representativeWord || "暂�
 
       saveCurrentViewState("wordDetail", {
         bookId: activeWordBook.id,
-        wordId: word.id
+        wordId: word.id,
+        wordBooksPreviousView
       });
 
       app.innerHTML = `
@@ -1603,8 +1629,7 @@ ${escapeHtml(letter || "暂无")} 是“${escapeHtml(representativeWord || "暂�
         ${renderThaiActions(word.thai_text, word.audio_url || "", "wordActionMessage")}
         <div class="result">${renderWordCardDetails(word)}</div>
         ${renderExampleSentenceHtml(word)}
-        <button class="primary" onclick="showBookWordsPage('${escapeHtml(activeWordBook.id)}')">返回词表</button>
-        <button class="primary" onclick="showWordBooksPage()">返回词书</button>
+        <button class="primary" onclick="showBookWordsPage('${escapeHtml(activeWordBook.id)}')">返回</button>
       `;
     }
 
