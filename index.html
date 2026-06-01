@@ -343,6 +343,8 @@
     let activeLearningItems = [];
     let currentLearningIndex = 0;
     let wordBooksPreviousView = "start";
+    let browserBackGuardReady = false;
+    const dailyLevelCompletionCache = new Map();
 
     const app = document.getElementById("app");
     const currentViewStorageKey = "thai-current-view-state";
@@ -490,6 +492,150 @@
       }
     }
 
+    function getDailyLevel(value) {
+      const level = typeof value === "string" ? value : value?.level;
+      const match = /^L(\d+)$/.exec(String(level || ""));
+      return match ? Number(match[1]) : null;
+    }
+
+    function getDailyLevelName(levelNumber) {
+      return Number.isInteger(levelNumber) ? `L${levelNumber}` : "";
+    }
+
+    function isTestOrDemoUser() {
+      return currentUserId === "demo-user"
+        || loginEmail.toLowerCase() === demoEmail.toLowerCase()
+        || loginEmail.toLowerCase() === "test@example.com";
+    }
+
+    function getRequiredPreviousLevel(level) {
+      const levelNumber = getDailyLevel(level);
+      return levelNumber !== null && levelNumber > 0
+        ? getDailyLevelName(levelNumber - 1)
+        : null;
+    }
+
+    function getLockedMessage(level) {
+      const previousLevel = getRequiredPreviousLevel(level);
+
+      if (!previousLevel) {
+        return "";
+      }
+
+      if (level === "L1") {
+        return "请先完成 L0 基础学习，再学习 L1。";
+      }
+
+      return `请先完成 ${previousLevel} 学习，再学习 ${level}。`;
+    }
+
+    async function isLevelComplete(level) {
+      if (isTestOrDemoUser()) {
+        return true;
+      }
+
+      if (!currentUserId || !level) {
+        return false;
+      }
+
+      if (dailyLevelCompletionCache.has(level)) {
+        return dailyLevelCompletionCache.get(level);
+      }
+
+      const client = getAuthClient();
+
+      if (!client) {
+        return false;
+      }
+
+      const { data: words, error: wordsError } = await client
+        .from("thai_words")
+        .select("id")
+        .eq("track", "daily")
+        .eq("level", level)
+        .eq("is_active", true);
+
+      if (wordsError || !words || words.length === 0) {
+        dailyLevelCompletionCache.set(level, false);
+        return false;
+      }
+
+      const wordIds = words.map(word => word.id);
+      const { data: progress, error: progressError } = await client
+        .from("user_word_progress")
+        .select("word_id, status")
+        .eq("user_id", currentUserId)
+        .eq("status", "mastered")
+        .in("word_id", wordIds);
+
+      if (progressError) {
+        dailyLevelCompletionCache.set(level, false);
+        return false;
+      }
+
+      const masteredWordIds = new Set((progress || []).map(item => item.word_id));
+      const isComplete = wordIds.every(wordId => masteredWordIds.has(wordId));
+      dailyLevelCompletionCache.set(level, isComplete);
+      return isComplete;
+    }
+
+    async function canAccessLevel(level) {
+      const levelNumber = getDailyLevel(level);
+
+      if (levelNumber === null || levelNumber === 0 || isTestOrDemoUser()) {
+        return true;
+      }
+
+      return isLevelComplete(getRequiredPreviousLevel(level));
+    }
+
+    async function enforceLevelAccess(level) {
+      if (await canAccessLevel(level)) {
+        return true;
+      }
+
+      return false;
+    }
+
+    function closeThaiWordLookupIfOpen() {
+      const card = document.getElementById("wordLookupCard");
+
+      if (!card || !card.innerHTML.trim()) {
+        return false;
+      }
+
+      closeThaiWordLookup();
+      return true;
+    }
+
+    function getCurrentAppView() {
+      return loadCurrentViewState()?.currentView || "start";
+    }
+
+    function initializeBrowserBackGuard() {
+      if (browserBackGuardReady) {
+        return;
+      }
+
+      browserBackGuardReady = true;
+      window.history.pushState({ thaiAppGuard: true }, "", window.location.href);
+      window.addEventListener("popstate", () => {
+        if (closeThaiWordLookupIfOpen()) {
+          const saved = loadCurrentViewState();
+
+          if (saved?.currentView) {
+            saveCurrentViewState(saved.currentView, saved);
+          }
+
+          window.history.pushState({ thaiAppGuard: true }, "", window.location.href);
+          return;
+        }
+
+        appBack(getCurrentAppView());
+        window.history.pushState({ thaiAppGuard: true }, "", window.location.href);
+      });
+    }
+
     async function restoreCurrentView() {
       const saved = loadCurrentViewState();
 
@@ -505,6 +651,11 @@
       wordBooksPreviousView = saved.wordBooksPreviousView || "start";
 
       if (saved.currentView === "learning" && lastLevel) {
+        if (!(await enforceLevelAccess(lastLevel))) {
+          showWordPlanPage(getLockedMessage(lastLevel));
+          return;
+        }
+
         activeLearningItems = Array.isArray(saved.learningQueue) && saved.learningQueue.length > 0
           ? saved.learningQueue
           : await loadRecommendedLearningItems(lastLevel);
@@ -1082,6 +1233,10 @@
       }
 
       try {
+        if (!(await enforceLevelAccess(lastLevel))) {
+          throw new Error(getLockedMessage(lastLevel));
+        }
+
         const [items] = await Promise.all([
           loadRecommendedLearningItems(lastLevel),
           ensureDailyDictionary()
@@ -1319,7 +1474,7 @@
       showStartPage();
     }
 
-    async function showWordBooksPage() {
+    async function showWordBooksPage(message = "") {
       if (!accessGranted) {
         showAccessPage();
         return;
@@ -1369,6 +1524,16 @@
       }
 
       const books = data || [];
+      const dailyLevels = [...new Set(
+        books
+          .filter(book => book.track === "daily")
+          .map(book => book.level)
+      )];
+      const dailyLevelAccess = new Map(
+        await Promise.all(
+          dailyLevels.map(async level => [level, await canAccessLevel(level)])
+        )
+      );
       const groupedBooks = {
         daily: books.filter(book => book.track === "daily"),
         cutfl: books.filter(book => book.track === "cutfl")
@@ -1377,12 +1542,18 @@
       const renderBookGroup = track => {
         const trackBooks = groupedBooks[track] || [];
         const buttons = trackBooks.length > 0
-          ? trackBooks.map(book => `
+          ? trackBooks.map(book => {
+              const levelState = track === "daily"
+                ? `｜${dailyLevelAccess.get(book.level) ? "已解锁" : "未解锁"}`
+                : "";
+
+              return `
               <button onclick="showBookWordsPage('${escapeHtml(book.id)}')">
-                ${escapeHtml(book.title)}｜${escapeHtml(book.level)}｜${escapeHtml(getDisplayName(book.category))}
+                ${escapeHtml(book.title)}｜${escapeHtml(book.level)}｜${escapeHtml(getDisplayName(book.category))}${levelState}
                 <br><span class="meta">${escapeHtml(book.code)}：${escapeHtml(book.description || "")}</span>
               </button>
-            `).join("")
+            `;
+            }).join("")
           : `<div class="study-box">暂无词书。</div>`;
 
         return `
@@ -1394,6 +1565,8 @@
       app.innerHTML = `
         <h1>泰语词库</h1>
         <p class="meta">选择一个词书，查看里面的泰语学习项。</p>
+        ${message ? `<div class="error">${escapeHtml(message)}</div>` : ""}
+        ${isTestOrDemoUser() ? `<div class="study-box">测试账号已跳过等级限制</div>` : ""}
         ${renderBookGroup("daily")}
         ${renderBookGroup("cutfl")}
         <button class="primary" onclick="appBack('wordBooks')">返回</button>
@@ -1427,6 +1600,11 @@
           <div class="error">读取词书失败：${escapeHtml(bookError?.message || "没有找到这个词书。")}</div>
           <button class="primary" onclick="appBack('bookWords')">返回</button>
         `;
+        return;
+      }
+
+      if (book.track === "daily" && !(await enforceLevelAccess(book.level))) {
+        showWordBooksPage(getLockedMessage(book.level));
         return;
       }
 
@@ -1731,6 +1909,8 @@ ${escapeHtml(letter || "暂无")} 是“${escapeHtml(representativeWord || "暂�
       if (error) {
         throw error;
       }
+
+      dailyLevelCompletionCache.clear();
     }
 
     function moveToNextLearningItem() {
@@ -1814,6 +1994,7 @@ ${escapeHtml(letter || "暂无")} 是“${escapeHtml(representativeWord || "暂�
       app.innerHTML = `
         <h1>今日泰语学习计划</h1>
         <p class="meta">根据你的等级 ${getLevelTitle(lastLevel)}，每天学习 ${dailyNewWordCount} 个内容。L0 从字母和拼读开始，后续等级再逐步进入词汇、句型和语境。</p>
+        ${isTestOrDemoUser() ? `<div class="study-box">测试账号已跳过等级限制</div>` : ""}
         <div class="study-box">今日需要复习的旧内容：
 ${formatWords(reviewWords)}
 
@@ -1882,6 +2063,7 @@ ${suggestion}</div>
       });
     }
 
+    initializeBrowserBackGuard();
     restoreLoginSession();
   </script>
 </body>
