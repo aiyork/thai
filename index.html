@@ -19,29 +19,36 @@
       font-family: Arial, "Noto Sans Thai", "Microsoft YaHei", sans-serif;
       background: #f6f7fb;
       color: #1f2937;
+      overflow-x: hidden;
     }
 
     .page {
       min-height: 100vh;
       display: flex;
-      align-items: center;
+      align-items: stretch;
       justify-content: center;
-      padding: 18px;
+      padding: 0;
     }
 
     .panel {
       width: 100%;
       max-width: 760px;
       background: white;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      padding: 28px;
-      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+      padding: 22px 16px 28px;
+      overflow-wrap: anywhere;
     }
 
     h1 {
       margin: 0 0 20px;
-      font-size: 30px;
+      font-size: 26px;
+      line-height: 1.35;
+    }
+
+    .study-title {
+      margin: -8px 0 18px;
+      font-size: 34px;
+      font-weight: 700;
+      line-height: 1.35;
     }
 
     .meta {
@@ -78,15 +85,18 @@
     }
 
     button {
+      width: 100%;
       border: 1px solid #cfd4dc;
       border-radius: 6px;
       background: white;
       color: #1f2937;
       cursor: pointer;
-      font-size: 17px;
-      min-height: 48px;
-      padding: 12px 14px;
+      font-size: 16px;
+      line-height: 1.5;
+      min-height: 52px;
+      padding: 13px 14px;
       text-align: left;
+      overflow-wrap: anywhere;
     }
 
     button:hover {
@@ -117,6 +127,7 @@
 
     .topline {
       display: flex;
+      flex-wrap: wrap;
       justify-content: space-between;
       gap: 14px;
       color: #667085;
@@ -129,8 +140,13 @@
 
     .result {
       white-space: pre-line;
-      font-size: 18px;
+      padding: 16px;
+      border: 1px solid #dbe3ef;
+      border-radius: 8px;
+      background: #f8fafc;
+      font-size: 17px;
       line-height: 1.8;
+      overflow-wrap: anywhere;
     }
 
     .error {
@@ -147,33 +163,107 @@
       background: #f8fafc;
       line-height: 1.8;
       white-space: pre-line;
+      overflow-wrap: anywhere;
     }
 
-    @media (max-width: 560px) {
+    .sentence-box {
+      margin-top: 18px;
+      padding: 16px;
+      border: 1px solid #dbe3ef;
+      border-radius: 8px;
+      background: #f8fafc;
+      line-height: 1.8;
+    }
+
+    .sentence-label {
+      margin-bottom: 6px;
+      font-weight: 700;
+    }
+
+    .thai-sentence {
+      font-size: 22px;
+      line-height: 1.8;
+      overflow-wrap: anywhere;
+    }
+
+    .lookup-token {
+      display: inline;
+      width: auto;
+      min-height: 0;
+      padding: 0 2px;
+      border: none;
+      border-radius: 3px;
+      color: #1d4ed8;
+      background: transparent;
+      font-size: inherit;
+      font-weight: 700;
+      line-height: inherit;
+      text-align: left;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .lookup-token:hover {
+      border: none;
+      background: #dbeafe;
+    }
+
+    .lookup-card {
+      margin-top: 18px;
+      padding: 16px;
+      border: 1px solid #93c5fd;
+      border-radius: 8px;
+      background: #eff6ff;
+      line-height: 1.8;
+      overflow-wrap: anywhere;
+    }
+
+    .lookup-card .primary {
+      margin-top: 12px;
+    }
+
+    @media (min-width: 561px) {
       .page {
-        align-items: stretch;
-        padding: 0;
+        align-items: center;
+        padding: 24px;
       }
 
       .panel {
-        min-height: 100vh;
-        border: none;
-        border-radius: 0;
-        box-shadow: none;
-        padding: 22px 16px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 28px;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
       }
 
       h1 {
-        font-size: 26px;
+        font-size: 30px;
+      }
+
+      .study-title {
+        font-size: 38px;
       }
 
       .question {
-        font-size: 20px;
+        font-size: 22px;
       }
 
       button {
-        width: 100%;
-        font-size: 16px;
+        font-size: 17px;
+      }
+
+      .result {
+        padding: 18px;
+        font-size: 18px;
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .page {
+        padding: 36px;
+      }
+
+      .panel {
+        padding: 32px;
       }
     }
   </style>
@@ -194,6 +284,7 @@
     const enableDemoLogin = true;
     const demoEmail = "test@example.com";
     const demoPassword = "123456";
+    const dailyL0LetterSentences = {"ก ไก่": ["ฉันกินไก่", "我吃鸡肉。"], "ข ไข่": ["ฉันกินไข่", "我吃鸡蛋。"], "ฃ ขวด": ["ขวดอยู่บนโต๊ะ", "瓶子在桌子上。"], "ค ควาย": ["ควายอยู่ที่นี่", "水牛在这里。"], "ฅ คน": ["คนอยู่ที่นี่", "人在这里。"], "ฆ ระฆัง": ["ระฆังอยู่ที่นี่", "钟在这里。"], "ง งู": ["งูอยู่ที่นี่", "蛇在这里。"], "จ จาน": ["จานอยู่บนโต๊ะ", "盘子在桌子上。"], "ฉ ฉิ่ง": ["ฉิ่งอยู่ที่นี่", "小钹在这里。"], "ช ช้าง": ["ช้างอยู่ที่นี่", "大象在这里。"], "ซ โซ่": ["โซ่อยู่ที่นี่", "链子在这里。"], "ฌ เฌอ": ["เฌออยู่ที่นี่", "树在这里。"], "ญ หญิง": ["หญิงอยู่ที่นี่", "女人在这里。"], "ฎ ชฎา": ["ชฎาอยู่ที่นี่", "尖顶头冠在这里。"], "ฏ ปฏัก": ["ปฏักอยู่ที่นี่", "赶牛刺棒在这里。"], "ฐ ฐาน": ["ฐานอยู่ที่นี่", "底座在这里。"], "ฑ มณโฑ": ["มณโฑอยู่ที่นี่", "曼陀夫人在这里。"], "ฒ ผู้เฒ่า": ["ผู้เฒ่าอยู่ที่บ้าน", "老人在家里。"], "ณ เณร": ["เณรอยู่ที่นี่", "小沙弥在这里。"], "ด เด็ก": ["เด็กอยู่ที่บ้าน", "孩子在家里。"], "ต เต่า": ["เต่าอยู่ที่นี่", "乌龟在这里。"], "ถ ถุง": ["ถุงอยู่บนโต๊ะ", "袋子在桌子上。"], "ท ทหาร": ["ทหารอยู่ที่นี่", "士兵在这里。"], "ธ ธง": ["ธงอยู่ที่นี่", "旗子在这里。"], "น หนู": ["หนูอยู่ที่บ้าน", "老鼠在家里。"], "บ ใบไม้": ["ใบไม้อยู่ที่นี่", "树叶在这里。"], "ป ปลา": ["ฉันกินปลา", "我吃鱼。"], "ผ ผึ้ง": ["ผึ้งอยู่ที่นี่", "蜜蜂在这里。"], "ฝ ฝา": ["ฝาอยู่บนโต๊ะ", "盖子在桌子上。"], "พ พาน": ["พานอยู่บนโต๊ะ", "托盘在桌子上。"], "ฟ ฟัน": ["ฟันสะอาด", "牙齿很干净。"], "ภ สำเภา": ["สำเภาอยู่ที่นี่", "帆船在这里。"], "ม ม้า": ["ม้าอยู่ที่นี่", "马在这里。"], "ย ยักษ์": ["ยักษ์อยู่ที่นี่", "夜叉在这里。"], "ร เรือ": ["เรืออยู่ที่นี่", "船在这里。"], "ล ลิง": ["ลิงอยู่ที่นี่", "猴子在这里。"], "ว แหวน": ["แหวนอยู่ที่นี่", "戒指在这里。"], "ศ ศาลา": ["ศาลาอยู่ที่นี่", "亭子在这里。"], "ษ ฤๅษี": ["ฤๅษีอยู่ที่นี่", "隐士在这里。"], "ส เสือ": ["เสืออยู่ที่นี่", "老虎在这里。"], "ห หีบ": ["หีบอยู่ที่นี่", "箱子在这里。"], "ฬ จุฬา": ["จุฬาอยู่ที่นี่", "风筝在这里。"], "อ อ่าง": ["อ่างอยู่ที่นี่", "盆在这里。"], "ฮ นกฮูก": ["นกฮูกอยู่ที่นี่", "猫头鹰在这里。"]};
 
     // 学习计划默认每天 20 个内容，并按艾宾浩斯节奏提醒复习。
     const dailyNewWordCount = 20;
@@ -227,6 +318,11 @@
     let lastLevel = "";
     let activeWordBook = null;
     let activeBookWords = [];
+    let dailyDictionaryWords = [];
+    let dailyDictionaryByTerm = new Map();
+    let dailyDictionaryTerms = [];
+    let activeLearningItems = [];
+    let currentLearningIndex = 0;
 
     const app = document.getElementById("app");
 
@@ -378,15 +474,15 @@
         return;
       }
 
-      if (enableDemoLogin && form.email === demoEmail && form.password === demoPassword) {
-        accessGranted = true;
-        loginEmail = demoEmail;
-        currentUserId = "demo-user";
-        showStartPage();
-        return;
-      }
-
       if (!client) {
+        if (enableDemoLogin && form.email === demoEmail && form.password === demoPassword) {
+          accessGranted = true;
+          loginEmail = demoEmail;
+          currentUserId = "demo-user";
+          showStartPage();
+          return;
+        }
+
         form.accessError.textContent = "数据库还没配置，暂时不能登录。";
         return;
       }
@@ -398,6 +494,14 @@
       });
 
       if (error) {
+        if (enableDemoLogin && form.email === demoEmail && form.password === demoPassword) {
+          accessGranted = true;
+          loginEmail = demoEmail;
+          currentUserId = "demo-user";
+          showStartPage();
+          return;
+        }
+
         form.accessError.textContent = error.message;
         return;
       }
@@ -718,7 +822,7 @@
       return words.join("、");
     }
 
-    function saveTodayWords(words, source) {
+    function saveTodayWords(words, source, options = {}) {
       const today = getTodayKey();
       const plans = loadWordPlans().filter(plan => plan.date !== today);
       plans.push({
@@ -728,11 +832,112 @@
         words: words
       });
       saveWordPlans(plans);
-      showWordPlanPage("今日学习项已保存。明天打开本页面时，会提醒你复习今天的 20 个内容。");
+
+      if (!options.skipMessage) {
+        showWordPlanPage("今日学习项已保存。明天打开本页面时，会提醒你复习今天的 20 个内容。");
+      }
     }
 
-    function useSystemWords() {
-      saveTodayWords(getSystemWords(lastLevel), "系统推荐");
+    async function loadRecommendedLearningItems(level) {
+      const client = getAuthClient();
+
+      if (!client) {
+        throw new Error("Supabase 还没有配置，暂时不能读取推荐学习内容。");
+      }
+
+      const { data, error } = await client
+        .from("thai_words")
+        .select("id, thai_text, chinese_meaning, pronunciation, example_thai, example_chinese, track, level, category, part_of_speech, audio_url, sort_order")
+        .eq("track", "daily")
+        .eq("level", level)
+        .eq("is_active", true)
+        .order("category", { ascending: true })
+        .order("sort_order", { ascending: true })
+        .limit(dailyNewWordCount);
+
+      if (error) {
+        throw error;
+      }
+
+      return data || [];
+    }
+
+    async function ensureDailyDictionary() {
+      if (dailyDictionaryWords.length > 0) {
+        return;
+      }
+
+      const client = getAuthClient();
+
+      if (!client) {
+        throw new Error("Supabase 还没有配置，暂时不能读取泰语词典。");
+      }
+
+      const { data, error } = await client
+        .from("thai_words")
+        .select("id, thai_text, chinese_meaning, track, level, category, part_of_speech, audio_url")
+        .eq("track", "daily")
+        .eq("is_active", true)
+        .limit(1000);
+
+      if (error) {
+        throw error;
+      }
+
+      dailyDictionaryWords = data || [];
+      dailyDictionaryByTerm = new Map();
+
+      for (const word of dailyDictionaryWords) {
+        const thaiText = String(word.thai_text || "").trim();
+
+        if (thaiText) {
+          dailyDictionaryByTerm.set(thaiText, { ...word, lookup_text: thaiText });
+        }
+
+        if (word.level === "L0" && word.category === "letters") {
+          const [, ...representativeParts] = thaiText.split(/\s+/);
+          const representativeWord = representativeParts.join(" ");
+
+          if (representativeWord) {
+            dailyDictionaryByTerm.set(
+              representativeWord,
+              { ...word, lookup_text: representativeWord }
+            );
+          }
+        }
+      }
+
+      dailyDictionaryTerms = [...dailyDictionaryByTerm.keys()]
+        .filter(term => term.length > 0)
+        .sort((left, right) => right.length - left.length || left.localeCompare(right));
+    }
+
+    async function useSystemWords() {
+      const errorText = document.getElementById("wordPlanError");
+
+      if (errorText) {
+        errorText.textContent = "正在读取系统推荐学习内容...";
+      }
+
+      try {
+        const [items] = await Promise.all([
+          loadRecommendedLearningItems(lastLevel),
+          ensureDailyDictionary()
+        ]);
+
+        if (items.length === 0) {
+          throw new Error("没有找到当前等级的推荐学习内容。");
+        }
+
+        saveTodayWords(items.map(item => item.thai_text), "系统推荐", { skipMessage: true });
+        startLearningSession(items);
+      } catch (error) {
+        if (errorText) {
+          errorText.textContent = "读取系统推荐失败：" + error.message;
+        } else {
+          console.warn("读取系统推荐失败：", error.message);
+        }
+      }
     }
 
     function useCustomWords() {
@@ -780,15 +985,100 @@
     }
 
     function getTrackTitle(track) {
-      if (track === "daily") {
-        return "Daily Thai（日常泰语）";
+      const trackNames = {
+        daily: "日常泰语",
+        cutfl: "CUTFL 考试泰语"
+      };
+
+      return trackNames[track] || track || "未分类";
+    }
+
+    function getDisplayName(value) {
+      const displayNames = {
+        daily: "日常泰语",
+        cutfl: "CUTFL 考试泰语",
+        letters: "字母",
+        vowels: "元音",
+        tones: "声调",
+        greeting: "问候",
+        numbers: "数字",
+        time: "时间",
+        pronouns: "代词",
+        questions: "疑问表达",
+        basic_verbs: "基础动词",
+        adjectives: "形容词",
+        restaurant: "餐厅",
+        shopping: "购物",
+        travel: "旅行",
+        hotel: "酒店",
+        emergency: "紧急情况",
+        foundation: "基础",
+        vocab: "词汇",
+        noun: "名词",
+        verb: "动词",
+        adjective: "形容词",
+        classifier: "量词",
+        conjunction: "连词",
+        phrase: "短语",
+        direction: "方位词",
+        letter: "字母",
+        number: "数字",
+        particle: "助词",
+        pronoun: "代词",
+        question: "疑问表达",
+        spelling: "拼写",
+        tone: "声调",
+        tone_mark: "声调符号",
+        vowel: "元音",
+        word: "词语"
+      };
+
+      return displayNames[value] || value || "暂无";
+    }
+
+    function showAudioMessage(message) {
+      const messageBox = document.getElementById("audioMessage");
+
+      if (messageBox) {
+        messageBox.textContent = message;
+      }
+    }
+
+    function speakThaiText(thaiText) {
+      if (!("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) {
+        showAudioMessage("当前设备暂不支持泰语发音");
+        return;
       }
 
-      if (track === "cutfl") {
-        return "CUTFL exam Thai（CUTFL 考试泰语）";
+      const utterance = new SpeechSynthesisUtterance(thaiText);
+      utterance.lang = "th-TH";
+      const thaiVoice = window.speechSynthesis
+        .getVoices()
+        .find(voice => voice.lang && voice.lang.toLowerCase().startsWith("th"));
+
+      if (thaiVoice) {
+        utterance.voice = thaiVoice;
       }
 
-      return track || "未分类";
+      utterance.onerror = () => {
+        showAudioMessage("当前设备暂不支持泰语发音");
+      };
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utterance);
+      showAudioMessage("正在播放泰语发音");
+    }
+
+    function playAudio(audioUrl, thaiText) {
+      // 优先播放数据库里的公开 MP3；MP3 为空或播放失败时，用浏览器泰语 TTS。
+      if (!audioUrl) {
+        speakThaiText(thaiText);
+        return;
+      }
+
+      const audio = new Audio(audioUrl);
+      audio.play().catch(() => {
+        speakThaiText(thaiText);
+      });
     }
 
     async function showWordBooksPage() {
@@ -841,7 +1131,7 @@
         const buttons = trackBooks.length > 0
           ? trackBooks.map(book => `
               <button onclick="showBookWordsPage('${escapeHtml(book.id)}')">
-                ${escapeHtml(book.title)}｜${escapeHtml(book.level)}｜${escapeHtml(book.category)}
+                ${escapeHtml(book.title)}｜${escapeHtml(book.level)}｜${escapeHtml(getDisplayName(book.category))}
                 <br><span class="meta">${escapeHtml(book.code)}：${escapeHtml(book.description || "")}</span>
               </button>
             `).join("")
@@ -910,22 +1200,173 @@
 
       activeWordBook = book;
       activeBookWords = words || [];
+      await ensureDailyDictionary();
 
       const wordButtons = activeBookWords.length > 0
         ? activeBookWords.map((word, index) => `
             <button onclick="showWordDetailPage(${index})">
-              ${escapeHtml(word.thai_text)}｜${escapeHtml(word.chinese_meaning)}
-              <br><span class="meta">${escapeHtml(word.pronunciation || "")}</span>
+              ${escapeHtml(word.thai_text)}${["vowels", "tones"].includes(word.category) ? "" : `｜${escapeHtml(word.chinese_meaning)}`}
             </button>
           `).join("")
         : `<div class="study-box">这个词书还没有词条。</div>`;
 
       app.innerHTML = `
         <h1>${escapeHtml(book.title)}</h1>
-        <p class="meta">${escapeHtml(getTrackTitle(book.track))}｜${escapeHtml(book.level)}｜${escapeHtml(book.category)}｜${escapeHtml(book.code)}</p>
+        <p class="meta">${escapeHtml(getTrackTitle(book.track))}｜${escapeHtml(book.level)}｜${escapeHtml(getDisplayName(book.category))}｜${escapeHtml(book.code)}</p>
         <div class="options">${wordButtons}</div>
         <button class="primary" onclick="showWordBooksPage()">返回词书</button>
       `;
+    }
+
+    function renderWordCardDetails(word) {
+      if (word.level === "L0" && word.category === "letters") {
+        const [letter, ...representativeParts] = String(word.thai_text || "").trim().split(/\s+/);
+        const representativeWord = representativeParts.join(" ");
+        const letterName = representativeWord ? `${letter}อ ${representativeWord}` : letter;
+
+        return `字母：${escapeHtml(letter || "暂无")}
+字母名称：${escapeHtml(letterName || "暂无")}
+代表词：${escapeHtml(representativeWord || "暂无")}
+意思：${escapeHtml(word.chinese_meaning)}
+
+说明：
+${escapeHtml(letter || "暂无")} 是“${escapeHtml(representativeWord || "暂无")}（${escapeHtml(word.chinese_meaning || "暂无")}）”里的辅音字母。
+
+等级：${escapeHtml(word.level || "暂无")}
+分类：${escapeHtml(getDisplayName(word.category))}
+词性：${escapeHtml(getDisplayName(word.part_of_speech))}`;
+      }
+
+      if (word.level === "L0" && word.category === "vowels") {
+        return `元音：${escapeHtml(word.thai_text || "暂无")}
+意思：${escapeHtml(word.chinese_meaning || "暂无")}
+等级：${escapeHtml(word.level || "暂无")}
+分类：${escapeHtml(getDisplayName(word.category))}
+词性：${escapeHtml(getDisplayName(word.part_of_speech))}`;
+      }
+
+      if (word.level === "L0" && word.category === "tones") {
+        return `声调：${escapeHtml(word.thai_text || "暂无")}
+意思：${escapeHtml(word.chinese_meaning || "暂无")}
+等级：${escapeHtml(word.level || "暂无")}
+分类：${escapeHtml(getDisplayName(word.category))}
+词性：${escapeHtml(getDisplayName(word.part_of_speech))}`;
+      }
+
+      return `中文意思：${escapeHtml(word.chinese_meaning)}
+等级：${escapeHtml(word.level || "暂无")}
+分类：${escapeHtml(getDisplayName(word.category))}
+词性：${escapeHtml(getDisplayName(word.part_of_speech))}`;
+    }
+
+    function getExampleSentence(word) {
+      if (word.level === "L0" && word.category === "letters") {
+        const draftSentence = dailyL0LetterSentences[word.thai_text];
+
+        if (draftSentence) {
+          return {
+            label: "日常短句",
+            thai: draftSentence[0],
+            chinese: draftSentence[1]
+          };
+        }
+      }
+
+      if (word.level !== "L0" && word.example_thai) {
+        return {
+          label: "泰语例句",
+          thai: word.example_thai,
+          chinese: word.example_chinese || "暂无"
+        };
+      }
+
+      return null;
+    }
+
+    function renderClickableThaiSentence(thaiSentence) {
+      const sentence = String(thaiSentence || "");
+      let output = "";
+      let position = 0;
+
+      while (position < sentence.length) {
+        const term = dailyDictionaryTerms.find(candidate =>
+          sentence.startsWith(candidate, position)
+        );
+
+        if (!term) {
+          output += escapeHtml(sentence[position]);
+          position += 1;
+          continue;
+        }
+
+        output += `<button class="lookup-token" data-lookup-term="${escapeHtml(term)}" onclick="showThaiWordLookup(this.dataset.lookupTerm)">${escapeHtml(term)}</button>`;
+        position += term.length;
+      }
+
+      return output;
+    }
+
+    function renderExampleSentenceHtml(word) {
+      const sentence = getExampleSentence(word);
+
+      if (!sentence) {
+        return "";
+      }
+
+      return `
+        <div class="sentence-box">
+          <div class="sentence-label">${escapeHtml(sentence.label)}：</div>
+          <div class="thai-sentence">${renderClickableThaiSentence(sentence.thai)}</div>
+          <div>${escapeHtml(sentence.chinese)}</div>
+        </div>
+        <div id="wordLookupCard"></div>
+      `;
+    }
+
+    function showThaiWordLookup(term) {
+      const card = document.getElementById("wordLookupCard");
+      const word = dailyDictionaryByTerm.get(term);
+
+      if (!card || !word) {
+        return;
+      }
+
+      card.innerHTML = `
+        <div class="lookup-card">
+          <strong>泰语：${escapeHtml(term)}</strong><br>
+          中文意思：${escapeHtml(word.chinese_meaning || "暂无")}<br>
+          词性：${escapeHtml(getDisplayName(word.part_of_speech))}<br>
+          等级：${escapeHtml(word.level || "暂无")}<br>
+          分类：${escapeHtml(getDisplayName(word.category))}
+          <button class="primary" data-audio-url="${escapeHtml(word.audio_url || "")}" data-thai-text="${escapeHtml(term)}" onclick="playAudio(this.dataset.audioUrl, this.dataset.thaiText)">🔊 播放发音</button>
+          <div>${word.audio_url ? "可播放音频" : "暂无音频"}</div>
+          <button class="primary" onclick="closeThaiWordLookup()">关闭</button>
+        </div>
+      `;
+    }
+
+    function closeThaiWordLookup() {
+      const card = document.getElementById("wordLookupCard");
+
+      if (card) {
+        card.innerHTML = "";
+      }
+    }
+
+    function getWordCardTitle(word) {
+      if (word.level === "L0" && word.category === "letters") {
+        return "字母介绍";
+      }
+
+      if (word.level === "L0" && word.category === "vowels") {
+        return "元音学习";
+      }
+
+      if (word.level === "L0" && word.category === "tones") {
+        return "声调学习";
+      }
+
+      return "泰语";
     }
 
     function showWordDetailPage(index) {
@@ -936,22 +1377,166 @@
         return;
       }
 
-      const audioHtml = word.audio_url
-        ? `<a class="primary" href="${escapeHtml(word.audio_url)}" target="_blank" rel="noopener">播放发音</a>`
-        : `<div class="study-box">Audio not available yet</div>`;
+      const audioHtml = `
+        <button class="primary" data-audio-url="${escapeHtml(word.audio_url || "")}" data-thai-text="${escapeHtml(word.thai_text)}" onclick="playAudio(this.dataset.audioUrl, this.dataset.thaiText)">🔊 播放发音</button>
+        <div class="study-box" id="audioMessage">${word.audio_url ? "可播放音频" : "暂无音频，点击后使用浏览器泰语发音"}</div>
+      `;
 
       app.innerHTML = `
-        <h1>${escapeHtml(word.thai_text)}</h1>
-        <div class="result">中文意思：${escapeHtml(word.chinese_meaning)}
-发音：${escapeHtml(word.pronunciation || "暂无")}
-泰语例句：${escapeHtml(word.example_thai || "暂无")}
-中文例句：${escapeHtml(word.example_chinese || "暂无")}
-分类：${escapeHtml(word.category || "暂无")}
-等级：${escapeHtml(word.level || "暂无")}
-词性：${escapeHtml(word.part_of_speech || "暂无")}</div>
+        <h1>${escapeHtml(getWordCardTitle(word))}</h1>
+        <div class="study-title">${escapeHtml(word.thai_text)}</div>
+        <div class="result">${renderWordCardDetails(word)}</div>
+        ${renderExampleSentenceHtml(word)}
         ${audioHtml}
         <button class="primary" onclick="showBookWordsPage('${escapeHtml(activeWordBook.id)}')">返回词表</button>
         <button class="primary" onclick="showWordBooksPage()">返回词书</button>
+      `;
+    }
+
+    function startLearningSession(items) {
+      activeLearningItems = items;
+      currentLearningIndex = 0;
+      showLearningItemPage();
+    }
+
+    function getTomorrowIsoString() {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      return tomorrow.toISOString();
+    }
+
+    async function saveWordProgress(word, resultType) {
+      const client = getAuthClient();
+
+      if (!client || !currentUserId) {
+        throw new Error("请先登录。");
+      }
+
+      if (currentUserId === "demo-user") {
+        return;
+      }
+
+      const { data: existing, error: readError } = await client
+        .from("user_word_progress")
+        .select("review_count, wrong_count, correct_streak")
+        .eq("user_id", currentUserId)
+        .eq("word_id", word.id)
+        .maybeSingle();
+
+      if (readError) {
+        throw readError;
+      }
+
+      const reviewCount = existing?.review_count || 0;
+      const wrongCount = existing?.wrong_count || 0;
+      const correctStreak = existing?.correct_streak || 0;
+      const now = new Date().toISOString();
+      const progress = {
+        user_id: currentUserId,
+        word_id: word.id,
+        last_studied_at: now,
+        updated_at: now
+      };
+
+      if (resultType === "wrong") {
+        Object.assign(progress, {
+          status: "learning",
+          mastery_level: 0,
+          review_count: reviewCount + 1,
+          wrong_count: wrongCount + 1,
+          correct_streak: 0,
+          last_result: "wrong",
+          next_review_at: getTomorrowIsoString()
+        });
+      } else {
+        Object.assign(progress, {
+          status: "mastered",
+          mastery_level: 5,
+          review_count: reviewCount + 1,
+          wrong_count: wrongCount,
+          correct_streak: correctStreak + 1,
+          last_result: "mastered",
+          next_review_at: null
+        });
+      }
+
+      const { error } = await client
+        .from("user_word_progress")
+        .upsert(progress, { onConflict: "user_id,word_id" });
+
+      if (error) {
+        throw error;
+      }
+    }
+
+    function moveToNextLearningItem() {
+      currentLearningIndex += 1;
+      showLearningItemPage();
+    }
+
+    async function markLearningItem(resultType) {
+      const word = activeLearningItems[currentLearningIndex];
+      const errorText = document.getElementById("learningError");
+
+      if (!word) {
+        showLearningCompletePage();
+        return;
+      }
+
+      if (errorText) {
+        errorText.textContent = "";
+      }
+
+      try {
+        await saveWordProgress(word, resultType);
+        moveToNextLearningItem();
+      } catch (error) {
+        if (errorText) {
+          errorText.textContent = "保存学习进度失败：" + error.message;
+        }
+        console.warn("保存学习进度失败：", error.message);
+      }
+    }
+
+    function showLearningItemPage() {
+      const word = activeLearningItems[currentLearningIndex];
+
+      if (!word) {
+        showLearningCompletePage();
+        return;
+      }
+
+      const audioHtml = `
+        <button class="primary" data-audio-url="${escapeHtml(word.audio_url || "")}" data-thai-text="${escapeHtml(word.thai_text)}" onclick="playAudio(this.dataset.audioUrl, this.dataset.thaiText)">🔊 播放发音</button>
+        <div class="study-box" id="audioMessage">${word.audio_url ? "可播放音频" : "暂无音频，点击后使用浏览器泰语发音"}</div>
+      `;
+
+      app.innerHTML = `
+        <div class="topline">
+          <div>今日学习：${currentLearningIndex + 1} / ${activeLearningItems.length}</div>
+          <div>${escapeHtml(getDisplayName(word.category))}</div>
+        </div>
+        <h1>${escapeHtml(getWordCardTitle(word))}</h1>
+        <div class="study-title">${escapeHtml(word.thai_text)}</div>
+        <div class="result">${renderWordCardDetails(word)}</div>
+        ${renderExampleSentenceHtml(word)}
+        ${audioHtml}
+        <div class="options">
+          <button onclick="moveToNextLearningItem()">下一个</button>
+          <button onclick="markLearningItem('wrong')">不认识，加入复习</button>
+          <button onclick="markLearningItem('mastered')">斩：已记住，不用再背</button>
+        </div>
+        <div class="error" id="learningError"></div>
+        <button class="primary" onclick="showWordPlanPage()">返回学习计划</button>
+      `;
+    }
+
+    function showLearningCompletePage() {
+      app.innerHTML = `
+        <h1>今日学习完成</h1>
+        <div class="study-box">你已经完成今天的系统推荐学习。明天可以继续复习和学习新的内容。</div>
+        <button class="primary" onclick="showWordPlanPage()">返回学习计划</button>
+        <button class="primary" onclick="showStartPage()">返回测试首页</button>
       `;
     }
 
@@ -980,6 +1565,7 @@ ${formatWords(reviewWords)}
           <div class="error" id="wordError"></div>
         </div>
         ${messageHtml}
+        <div class="error" id="wordPlanError"></div>
         <button class="primary" onclick="showWordBooksPage()">浏览泰语词库</button>
         <button class="primary" onclick="showStartPage()">返回测试</button>
       `;
