@@ -193,19 +193,27 @@
       padding: 0 2px;
       border: none;
       border-radius: 3px;
-      color: #1d4ed8;
+      color: #365f7d;
       background: transparent;
       font-size: inherit;
-      font-weight: 700;
+      font-weight: inherit;
       line-height: inherit;
       text-align: left;
-      text-decoration: underline;
+      text-decoration-line: underline;
+      text-decoration-style: dotted;
+      text-decoration-color: #7e9fb5;
       text-underline-offset: 3px;
+      cursor: pointer;
     }
 
-    .lookup-token:hover {
+    .lookup-token:hover,
+    .lookup-token:focus-visible {
       border: none;
-      background: #dbeafe;
+      background: #e8f1f5;
+      color: #244c68;
+      text-decoration-style: solid;
+      text-decoration-color: #365f7d;
+      outline: none;
     }
 
     .lookup-card {
@@ -220,6 +228,55 @@
 
     .lookup-card .primary {
       margin-top: 12px;
+    }
+
+    .sentence-breakdown {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid #dbe3ef;
+    }
+
+    .sentence-breakdown-toggle {
+      width: auto;
+      min-height: 38px;
+      padding: 7px 10px;
+      color: #365f7d;
+      background: #f8fafc;
+      font-size: 15px;
+      text-align: center;
+    }
+
+    .sentence-breakdown-content {
+      margin-top: 12px;
+      color: #344054;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    .sentence-breakdown-section + .sentence-breakdown-section {
+      margin-top: 10px;
+    }
+
+    .sentence-breakdown-heading {
+      font-weight: 700;
+    }
+
+    .sentence-chunks {
+      display: grid;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .sentence-chunk {
+      padding: 8px 10px;
+      border: 1px solid #dbe3ef;
+      border-radius: 6px;
+      background: white;
+      overflow-wrap: anywhere;
+    }
+
+    .sentence-chunk .lookup-token {
+      font-size: 18px;
     }
 
     .thai-actions {
@@ -1363,7 +1420,7 @@
 
     function speakThaiText(thaiText, messageBoxId = "audioMessage") {
       if (!("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) {
-        showAudioMessage("暂无音频", messageBoxId);
+        showAudioMessage("浏览器不支持泰语发音", messageBoxId);
         return;
       }
 
@@ -1378,7 +1435,7 @@
       }
 
       utterance.onerror = () => {
-        showAudioMessage("暂无音频", messageBoxId);
+        showAudioMessage("浏览器泰语发音播放失败", messageBoxId);
       };
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utterance);
@@ -1431,13 +1488,13 @@
       }
     }
 
-    function renderThaiActions(thaiText, audioUrl, messageBoxId) {
+    function renderThaiActions(thaiText, audioUrl, messageBoxId, browserTtsMessage = "使用浏览器泰语发音") {
       return `
         <div class="thai-actions">
           <button data-audio-url="${escapeHtml(audioUrl || "")}" data-thai-text="${escapeHtml(thaiText)}" onclick="playAudio(this.dataset.audioUrl, this.dataset.thaiText, '${messageBoxId}')">🔊 发音</button>
           <button data-thai-text="${escapeHtml(thaiText)}" onclick="copyThaiText(this.dataset.thaiText, '${messageBoxId}')">复制</button>
         </div>
-        <div class="action-message" id="${messageBoxId}">${audioUrl ? "可播放音频" : "暂无音频，点击发音后使用浏览器泰语发音"}</div>
+        <div class="action-message" id="${messageBoxId}">${audioUrl ? "可播放音频" : browserTtsMessage}</div>
       `;
     }
 
@@ -1544,13 +1601,14 @@
         const buttons = trackBooks.length > 0
           ? trackBooks.map(book => {
               const levelState = track === "daily"
-                ? `｜${dailyLevelAccess.get(book.level) ? "已解锁" : "未解锁"}`
+                ? `<span class="meta">${dailyLevelAccess.get(book.level) ? "已解锁" : "未解锁"}</span>`
                 : "";
 
               return `
               <button onclick="showBookWordsPage('${escapeHtml(book.id)}')">
-                ${escapeHtml(book.title)}｜${escapeHtml(book.level)}｜${escapeHtml(getDisplayName(book.category))}${levelState}
-                <br><span class="meta">${escapeHtml(book.code)}：${escapeHtml(book.description || "")}</span>
+                ${escapeHtml(book.title)}
+                <br><span class="meta">${escapeHtml(book.description || "")}</span>
+                ${levelState ? `<br>${levelState}` : ""}
               </button>
             `;
             }).join("")
@@ -1723,7 +1781,7 @@ ${escapeHtml(letter || "暂无")} 是“${escapeHtml(representativeWord || "暂�
       return null;
     }
 
-    function renderClickableThaiSentence(thaiSentence) {
+    function renderClickableThaiSentence(thaiSentence, currentDetailTerm = "") {
       const sentence = String(thaiSentence || "");
       let output = "";
       let position = 0;
@@ -1739,14 +1797,154 @@ ${escapeHtml(letter || "暂无")} 是“${escapeHtml(representativeWord || "暂�
           continue;
         }
 
-        output += `<button class="lookup-token" data-lookup-term="${escapeHtml(term)}" onclick="showThaiWordLookup(this.dataset.lookupTerm)">${escapeHtml(term)}</button>`;
+        output += `<button class="lookup-token" data-lookup-term="${escapeHtml(term)}" data-current-detail-term="${escapeHtml(currentDetailTerm)}" onclick="showThaiWordLookup(this.dataset.lookupTerm, this.dataset.currentDetailTerm)">${escapeHtml(term)}</button>`;
         position += term.length;
       }
 
       return output;
     }
 
-    function renderExampleSentenceHtml(word) {
+    const commonThaiChunkNotes = {
+      "ครับ": "男性礼貌语气词，不等于中文某个具体词。",
+      "ค่ะ": "女性陈述或回答时使用的礼貌语气词。",
+      "คะ": "女性疑问时使用的礼貌语气词。",
+      "หน่อย": "缓和语气，可理解为“一下 / 稍微”。",
+      "ไหม": "疑问词，相当于“吗”。",
+      "ไม่": "否定词，相当于“不 / 没”。",
+      "ขอ": "请求词，可理解为“请 / 请求 / 想要”。"
+    };
+
+    function getThaiLookupWord(term) {
+      const word = dailyDictionaryByTerm.get(term);
+
+      if (word) {
+        return word;
+      }
+
+      if (!commonThaiChunkNotes[term]) {
+        return null;
+      }
+
+      return {
+        thai_text: term,
+        chinese_meaning: commonThaiChunkNotes[term],
+        part_of_speech: "语气说明",
+        category: "常见表达",
+        level: "辅助说明",
+        audio_url: ""
+      };
+    }
+
+    function getSentenceChunks(thaiSentence) {
+      const sentence = String(thaiSentence || "").trim();
+      const segmentedTerms = [];
+
+      if (!sentence) {
+        return [];
+      }
+
+      if (typeof Intl !== "undefined" && Intl.Segmenter) {
+        const segmenter = new Intl.Segmenter("th", { granularity: "word" });
+
+        for (const segment of segmenter.segment(sentence)) {
+          const term = segment.segment.trim();
+
+          if (term && segment.isWordLike !== false) {
+            segmentedTerms.push(term);
+          }
+        }
+      } else {
+        segmentedTerms.push(...sentence.split(/\s+/).filter(Boolean));
+      }
+
+      return segmentedTerms
+        .map(term => {
+          const word = getThaiLookupWord(term);
+          const note = commonThaiChunkNotes[term] || "";
+
+          if (!word && !note) {
+            return null;
+          }
+
+          return {
+            term,
+            word,
+            chinese: word?.chinese_meaning || note,
+            partOfSpeech: word ? getDisplayName(word.part_of_speech) : "语气说明",
+            category: word ? getDisplayName(word.category) : "常见表达",
+            note
+          };
+        })
+        .filter(Boolean);
+    }
+
+    function renderSentenceChunk(chunk, currentDetailTerm) {
+      const thaiHtml = chunk.word
+        ? `<button class="lookup-token" data-lookup-term="${escapeHtml(chunk.term)}" data-current-detail-term="${escapeHtml(currentDetailTerm)}" onclick="showThaiWordLookup(this.dataset.lookupTerm, this.dataset.currentDetailTerm)">${escapeHtml(chunk.term)}</button>`
+        : `<strong>${escapeHtml(chunk.term)}</strong>`;
+
+      return `
+        <div class="sentence-chunk">
+          <div>${thaiHtml} = ${escapeHtml(chunk.chinese)}</div>
+          <div>词性：${escapeHtml(chunk.partOfSpeech)}｜分类：${escapeHtml(chunk.category)}</div>
+          ${chunk.note ? `<div>说明：${escapeHtml(chunk.note)}</div>` : ""}
+        </div>
+      `;
+    }
+
+    function renderSentenceBreakdown(sentence, currentDetailTerm = "") {
+      const chunks = getSentenceChunks(sentence.thai);
+      const tips = [...new Set(chunks.map(chunk => chunk.note).filter(Boolean))];
+      const chunksHtml = chunks.length > 0
+        ? chunks.map(chunk => renderSentenceChunk(chunk, currentDetailTerm)).join("")
+        : `<div class="sentence-chunk">暂未识别出可展示的词块。</div>`;
+
+      return `
+        <div class="sentence-breakdown">
+          <button class="sentence-breakdown-toggle" type="button" aria-expanded="false" onclick="toggleSentenceBreakdown(this)">展开句子拆解</button>
+          <div class="sentence-breakdown-content" hidden>
+            <div class="sentence-breakdown-section">
+              <div class="sentence-breakdown-heading">句子拆解：</div>
+            </div>
+            <div class="sentence-breakdown-section">
+              <div class="sentence-breakdown-heading">原句：</div>
+              <div>${escapeHtml(sentence.thai)}</div>
+            </div>
+            <div class="sentence-breakdown-section">
+              <div class="sentence-breakdown-heading">中文翻译：</div>
+              <div>${escapeHtml(sentence.chinese || "暂无中文翻译")}</div>
+            </div>
+            <div class="sentence-breakdown-section">
+              <div class="sentence-breakdown-heading">句子结构：</div>
+              <div>根据已识别词块辅助理解</div>
+            </div>
+            <div class="sentence-breakdown-section">
+              <div class="sentence-breakdown-heading">词块拆分：</div>
+              <div class="sentence-chunks">${chunksHtml}</div>
+            </div>
+            <div class="sentence-breakdown-section">
+              <div class="sentence-breakdown-heading">中国人学习提示：</div>
+              <div>${tips.length > 0 ? escapeHtml(tips.join(" ")) : "请结合原句和已识别词块理解，不建议逐字硬译。"}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function toggleSentenceBreakdown(button) {
+      const content = button.nextElementSibling;
+      const isExpanded = button.getAttribute("aria-expanded") === "true";
+
+      if (!content) {
+        return;
+      }
+
+      button.setAttribute("aria-expanded", String(!isExpanded));
+      button.textContent = isExpanded ? "展开句子拆解" : "收起句子拆解";
+      content.hidden = isExpanded;
+    }
+
+    function renderExampleSentenceHtml(word, currentDetailTerm = "") {
       const sentence = getExampleSentence(word);
 
       if (!sentence) {
@@ -1756,20 +1954,21 @@ ${escapeHtml(letter || "暂无")} 是“${escapeHtml(representativeWord || "暂�
       return `
         <div class="sentence-box">
           <div class="sentence-label">${escapeHtml(sentence.label)}：</div>
-          <div class="thai-sentence">${renderClickableThaiSentence(sentence.thai)}</div>
+          <div class="thai-sentence">${renderClickableThaiSentence(sentence.thai, currentDetailTerm)}</div>
           <div class="sentence-label">中文翻译：</div>
           <div>${escapeHtml(sentence.chinese || "暂无中文翻译")}</div>
-          ${renderThaiActions(sentence.thai, "", "sentenceActionMessage")}
+          ${renderThaiActions(sentence.thai, "", "sentenceActionMessage", "例句使用浏览器泰语发音")}
+          ${renderSentenceBreakdown(sentence, currentDetailTerm)}
         </div>
         <div id="wordLookupCard"></div>
       `;
     }
 
-    function showThaiWordLookup(term) {
+    function showThaiWordLookup(term, currentDetailTerm = "") {
       const card = document.getElementById("wordLookupCard");
-      const word = dailyDictionaryByTerm.get(term);
+      const word = getThaiLookupWord(term);
 
-      if (!card || !word) {
+      if (!card || !word || (currentDetailTerm && term === currentDetailTerm)) {
         return;
       }
 
@@ -1830,7 +2029,7 @@ ${escapeHtml(letter || "暂无")} 是“${escapeHtml(representativeWord || "暂�
         <div class="study-title">${escapeHtml(word.thai_text)}</div>
         ${renderThaiActions(word.thai_text, word.audio_url || "", "wordActionMessage")}
         <div class="result">${renderWordCardDetails(word)}</div>
-        ${renderExampleSentenceHtml(word)}
+        ${renderExampleSentenceHtml(word, word.thai_text)}
         <button class="primary" onclick="appBack('wordDetail')">返回</button>
       `;
     }
