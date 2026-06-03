@@ -827,7 +827,6 @@
       if (
         saved.currentView === "wordBooks"
         && saved.wordBooksModule === "daily"
-        && !saved.dailyLevel
       ) {
         await showDailyLevelsPage();
         return;
@@ -845,6 +844,11 @@
 
       if (saved.currentView === "dailyLevelBooks" && saved.dailyLevel) {
         await showDailyLevelBooksPage(saved.dailyLevel);
+        return;
+      }
+
+      if (saved.currentView === "dailyLevelBooks") {
+        await showDailyLevelsPage();
         return;
       }
 
@@ -1694,12 +1698,24 @@
     }
 
     function renderWordBookButton(book) {
+      const title = book.track === "daily"
+        ? String(book.title || "").replace(/^日常泰语\s+L\d+\s*[：:]\s*/, "")
+        : book.title;
+
       return `
         <button class="hierarchy-card" onclick="showBookWordsPage('${escapeHtml(book.id)}')">
-          <span class="hierarchy-title">${escapeHtml(book.title)}</span>
+          <span class="hierarchy-title">${escapeHtml(title)}</span>
           <span class="hierarchy-meta">${escapeHtml(book.description || "")}</span>
         </button>
       `;
+    }
+
+    async function openDailyThaiHome() {
+      activeWordBook = null;
+      activeBookWords = [];
+      activeDailyLevel = "";
+      activeWordBooksModule = "daily";
+      await showDailyLevelsPage();
     }
 
     async function showWordBooksPage(message = "") {
@@ -1727,7 +1743,7 @@
         <p class="meta">选择主模块：日常生活沟通，或 CUTFL 考试备考。</p>
         ${message ? `<div class="error">${escapeHtml(message)}</div>` : ""}
         <div class="hierarchy-grid">
-          <button class="hierarchy-card" onclick="showDailyLevelsPage()">
+          <button class="hierarchy-card" onclick="openDailyThaiHome()">
             <span class="hierarchy-title">日常泰语 Daily Thai</span>
             <span class="hierarchy-meta">真实生活、旅游、吃饭、交通、看病、购物、聊天。</span>
           </button>
