@@ -466,8 +466,8 @@
     let browserBackGuardReady = false;
     const dailyLevelCompletionCache = new Map();
     const dailyLevelCatalog = [
-      { level: "L0", title: "入门基础", description: "字母、发音和基础词" },
-      { level: "L1", title: "日常基础", description: "常用短句、日常生活和高频场景表达" },
+      { level: "L0", title: "入门基础", description: "字母、元音、声调和基础拼读" },
+      { level: "L1", title: "日常基础", description: "问候、购物、交通、身体、手机、酒店等基础表达" },
       { level: "L2", title: "场景进阶", description: "后续场景进阶，内容建设中" },
       { level: "L3", title: "日常表达能力", description: "更复杂的表达、解释、协商、投诉和真实对话" }
     ];
@@ -486,7 +486,7 @@
 
     if ("serviceWorker" in navigator) {
       // 注册离线缓存。部署后如果页面没刷新，可改 sw.js 后面的版本号。
-      navigator.serviceWorker.register("sw.js?v=9").catch(() => {});
+      navigator.serviceWorker.register("sw.js?v=11").catch(() => {});
     }
 
     function chooseRandomQuestion(pool, usedQuestionTexts) {
@@ -824,6 +824,15 @@
         return;
       }
 
+      if (
+        saved.currentView === "wordBooks"
+        && saved.wordBooksModule === "daily"
+        && !saved.dailyLevel
+      ) {
+        await showDailyLevelsPage();
+        return;
+      }
+
       if (saved.currentView === "wordBooks") {
         await showWordBooksPage();
         return;
@@ -1103,7 +1112,7 @@
 学习建议：
 从泰文字母开始：先认读常见辅音，再学基础元音和简单拼读，例如 ก + า = กา。暂时不要急着背长句。</div>
         <button class="primary" onclick="showWordPlanPage()">生成今日 L0 学习计划</button>
-        <button class="primary" onclick="showWordBooksPage()">浏览 L0 泰语词库</button>
+        <button class="primary" onclick="showDailyLevelBooksPage('L0')">浏览 L0 泰语词库</button>
         <button class="primary" onclick="showStartPage()">重新选择</button>
       `;
     }
@@ -1780,6 +1789,8 @@
 
       activeWordBooksModule = "daily";
       activeDailyLevel = level;
+      activeWordBook = null;
+      activeBookWords = [];
       saveCurrentViewState("dailyLevelBooks", {
         dailyLevel: activeDailyLevel,
         wordBooksModule: activeWordBooksModule,
