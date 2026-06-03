@@ -232,6 +232,8 @@
 	    const secondHalfTimeLimit = 20;
 	    const accessCode = "test2026";
 	    const demoEmail = "test@example.com";
+	    const demoPassword = "123456";
+	    const adminTestAccounts = ["test@example.com", "test", "demo", "测试账号", "测试", "yixiaobao", "yixiaobao@example.com"];
 
 	    // 学习计划默认每天 20 个内容，并按艾宾浩斯节奏提醒复习。
 	    const dailyNewWordCount = 20;
@@ -275,6 +277,7 @@
 	    ];
 
 	    let accessGranted = false;
+	    let currentAccountEmail = "";
 	    let userName = "";
 	    let gender = "";
 	    let studiedThai = null;
@@ -349,7 +352,102 @@
 
 	      // 访问码正确后，才进入泰语水平测试的个人信息页。
 	      accessGranted = true;
+	      showAccountPage();
+	    }
+
+	    function normalizeAccount(value) {
+	      return value.trim().toLowerCase();
+	    }
+
+	    function loadRegisteredAccounts() {
+	      try {
+	        return JSON.parse(localStorage.getItem("thaiRegisteredAccounts") || "{}");
+	      } catch (error) {
+	        return {};
+	      }
+	    }
+
+	    function saveRegisteredAccounts(accounts) {
+	      localStorage.setItem("thaiRegisteredAccounts", JSON.stringify(accounts));
+	    }
+
+	    function isValidAccountEmail(email) {
+	      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+	    }
+
+	    function showAccountPage() {
+	      // 注册入口：这里只把账号保存在当前浏览器，用来区分测试账号和普通账号。
+	      currentView = "account";
+	      stopTimer();
+	      app.innerHTML = `
+	        <h1>账号登录 / 注册</h1>
+	        <p class="meta">请输入邮箱和密码。新用户可以先注册；已有账号直接登录。</p>
+	        <label for="accountEmail">邮箱：</label>
+	        <input id="accountEmail" placeholder="例如 test@example.com">
+	        <label for="accountPassword">密码：</label>
+	        <input id="accountPassword" type="password" placeholder="请输入密码">
+	        <div class="options">
+	          <button onclick="registerAccount()">注册账号</button>
+	          <button onclick="loginAccount()">登录账号</button>
+	        </div>
+	        <div class="error" id="accountError"></div>
+	      `;
+	      document.getElementById("accountEmail").focus();
+	    }
+
+	    function readAccountForm() {
+	      const email = normalizeAccount(document.getElementById("accountEmail").value);
+	      const password = document.getElementById("accountPassword").value;
+	      const errorText = document.getElementById("accountError");
+	      return { email, password, errorText };
+	    }
+
+	    function setCurrentAccount(email) {
+	      // 登录成功后，用 currentAccountEmail 识别当前账号；后面的泰语名字只用于显示。
+	      currentAccountEmail = normalizeAccount(email);
 	      showStartPage();
+	    }
+
+	    function registerAccount() {
+	      const { email, password, errorText } = readAccountForm();
+
+	      if (!isValidAccountEmail(email)) {
+	        errorText.textContent = "请输入有效邮箱。";
+	        return;
+	      }
+
+	      if (password.length < 6) {
+	        errorText.textContent = "密码至少 6 位。";
+	        return;
+	      }
+
+	      const accounts = loadRegisteredAccounts();
+
+	      if (accounts[email]) {
+	        errorText.textContent = "这个邮箱已经注册，请直接登录。";
+	        return;
+	      }
+
+	      accounts[email] = { password };
+	      saveRegisteredAccounts(accounts);
+	      setCurrentAccount(email);
+	    }
+
+	    function loginAccount() {
+	      const { email, password, errorText } = readAccountForm();
+	      const accounts = loadRegisteredAccounts();
+
+	      if (email === normalizeAccount(demoEmail) && password === demoPassword) {
+	        setCurrentAccount(email);
+	        return;
+	      }
+
+	      if (!accounts[email] || accounts[email].password !== password) {
+	        errorText.textContent = "账号或密码不正确。新用户请先注册。";
+	        return;
+	      }
+
+	      setCurrentAccount(email);
 	    }
 
     function isValidDisplayName(name) {
@@ -359,18 +457,24 @@
     }
 
 	    function isTestAccountName(name) {
-	      return name.trim().toLowerCase() === demoEmail.toLowerCase();
+	      const normalizedName = name.trim().toLowerCase();
+	      return adminTestAccounts.some(testName => normalizedName === testName.toLowerCase());
 	    }
 
 	    function isTestAccount() {
-	      // 只有 README 里写明的测试账号全开放；普通用户仍按原解锁规则。
-	      return isTestAccountName(userName);
+	      // 测试账号 / 管理员白名单不设锁：既看登录邮箱，也兼容旧的名字输入测试方式。
+	      return isTestAccountName(currentAccountEmail) || isTestAccountName(userName);
 	    }
 
     function showStartPage() {
       // 所有测试相关页面都先检查 accessGranted，防止跳过访问码入口。
       if (!accessGranted) {
         showAccessPage();
+        return;
+      }
+
+      if (!currentAccountEmail) {
+        showAccountPage();
         return;
       }
 
@@ -408,16 +512,15 @@
     }
 
 	    function showStudyHistoryPage() {
+	      // 这里先判断“是否学过泰语”，只决定是否需要做 20 题测试。
 	      currentView = "studyHistory";
 	      stopTimer();
 	      app.innerHTML = `
-	        <h1>泰语水平测试</h1>
-	        <p class="meta">${userName}，请选择你是否学过泰语。没有学过或不确定时，推荐从 L1 入门与日常基础开始；学过则进入 20 道题测试。</p>
-	        <label>你以前学过泰语吗？</label>
+	        <h1>你以前学过泰语吗？</h1>
+	        <p class="meta">如果你没有学过，推荐先从 L1 入门与日常基础开始；如果你学过泰语，可以先完成 20 道题水平测试。</p>
 	        <div class="options">
-	          <button onclick="chooseStudyHistory(false)">A. 没有学过，从 L1 开始学</button>
+	          <button onclick="chooseStudyHistory(false)">A. 没有学过，从 L1 开始</button>
 	          <button onclick="chooseStudyHistory(true)">B. 学过，进入水平测试</button>
-	          <button onclick="chooseStudyHistory('unknown')">D. 不知道</button>
 	        </div>
 	        <button class="primary" onclick="showStartPage()">返回修改信息</button>
 	      `;
@@ -426,15 +529,14 @@
     function chooseStudyHistory(hasStudied) {
       studiedThai = hasStudied;
 
-	      // 没学过或不确定的人不分到旧基础等级，统一推荐 L1。
-	      if (!studiedThai || studiedThai === "unknown") {
+	      // A：没有学过泰语时，不需要先考试，直接推荐从 L1 开始，再选择学习目的。
+	      if (!studiedThai) {
 	        lastLevel = "L1";
-	        // 选择“不知道”时不推荐 L0，直接带着 L1 推荐进入学习目的选择页。
-	        showLearningPurposePage({ studyStatus: studiedThai === "unknown" ? "不知道" : "没有学过泰语" });
+	        showLearningPurposePage({ studyStatus: "没有学过泰语" });
 	        return;
 	      }
 
-      // 学过泰语的人进入正式水平测试。
+      // B：学过泰语的人先做 20 题测试，用测试结果推荐 Daily Thai 起点。
       beginTest();
     }
 
@@ -592,6 +694,7 @@
 
 	    function canAccessDailyLevel(level) {
 	      // Daily Thai 解锁规则：L1 永远开放，L2/L3 依赖前一级完成标记。
+	      // 测试账号用于检查流程，所以 L1/L2/L3 都不设锁。
 	      if (isTestAccount()) return true;
 	      if (level === "L1") return true;
 	      if (level === "L2") return localStorage.getItem("thai-daily-complete:L1") === "true";
@@ -603,6 +706,11 @@
 	      if (level === "L2") return "请先完成 L1 入门与日常基础，再学习 L2。";
 	      if (level === "L3") return "请先完成 L2 场景进阶，再学习 L3。";
 	      return "";
+	    }
+
+	    function getDailyLevelStatus(level) {
+	      if (isTestAccount() && level !== "L1") return "测试账号已开放";
+	      return canAccessDailyLevel(level) ? "已开放" : getLockedMessage(level);
 	    }
 
 	    function showLearningPurposePage(details = {}) {
@@ -656,7 +764,7 @@
 	    }
 
 	    function chooseUnknownPurpose() {
-	      // 学习目的也选“不知道”时，继续推荐最稳妥的 L1 入门与日常基础。
+	      // “不知道”只属于学习目的页：不确定学习方向时，继续推荐最稳妥的 L1。
 	      lastLevel = "L1";
 	      showLearningPurposePage({ studyStatus: "不知道" });
 	    }
@@ -719,7 +827,7 @@
 	      activeDailyLevel = "";
 	      const levelButtons = dailyLevelCatalog.map(item => {
 	        const unlocked = canAccessDailyLevel(item.level);
-	        const status = unlocked ? "已开放" : getLockedMessage(item.level);
+	        const status = getDailyLevelStatus(item.level);
 	        return `
 	          <button class="hierarchy-card${unlocked ? "" : " locked"}" onclick="showDailyLevelBooksPage('${item.level}')">
 	            <span class="hierarchy-title">${item.level} ${item.title}</span>
