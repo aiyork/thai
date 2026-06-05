@@ -392,14 +392,15 @@
 	      stopTimer();
 	      app.innerHTML = `
 	        <h1>账号登录 / 注册</h1>
-	        <p class="meta">请输入邮箱和密码。新用户可以先注册；已有账号直接登录。</p>
+	        <p class="meta">请输入邮箱和密码。新用户可以先注册；已有账号直接登录。测试流程可以直接使用无锁测试账号。</p>
 	        <label for="accountEmail">邮箱：</label>
-	        <input id="accountEmail" placeholder="例如 test@example.com">
+	        <input id="accountEmail" placeholder="例如 yourname@gmail.com">
 	        <label for="accountPassword">密码：</label>
 	        <input id="accountPassword" type="password" placeholder="请输入密码">
 	        <div class="options">
 	          <button onclick="registerAccount()">注册账号</button>
 	          <button onclick="loginAccount()">登录账号</button>
+	          <button onclick="loginDemoAccount()">使用无锁测试账号</button>
 	        </div>
 	        <div class="error" id="accountError">${message}</div>
 	      `;
@@ -417,6 +418,11 @@
 	      // 登录成功后，用 currentAccountEmail 识别当前账号；后面的泰语名字只用于显示。
 	      currentAccountEmail = normalizeAccount(email);
 	      showStartPage();
+	    }
+
+	    function loginDemoAccount() {
+	      // 无锁测试账号：只用于检查流程，不走 Supabase 注册，避免示例邮箱被 Supabase 拒绝。
+	      setCurrentAccount(demoEmail);
 	    }
 
 	    async function registerAccount() {
@@ -449,6 +455,11 @@
 	      });
 
 	      if (error) {
+	        if (email === normalizeAccount(demoEmail)) {
+	          errorText.textContent = "test@example.com 是内置无锁测试账号，请点击“使用无锁测试账号”，不用注册。";
+	          return;
+	        }
+
 	        errorText.textContent = getAuthErrorText(error);
 	        return;
 	      }
